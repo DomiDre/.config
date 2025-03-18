@@ -190,9 +190,11 @@ require("lazy").setup({
 				{ "<leader>d", group = "[D]ocument" },
 				{ "<leader>r", group = "[R]ename" },
 				{ "<leader>s", group = "[S]earch" },
+				{ "<leader>e", group = "[E]xplorer" },
 				{ "<leader>w", group = "[W]orkspace" },
 				{ "<leader>t", group = "[T]oggle" },
-				{ "<leader>h", group = "Git [H]unk", mode = { "n", "v" } },
+				{ "<leader>i", group = "[I]nsert" },
+				{ "<leader>h", group = "[H]arpoon files" },
 			},
 		},
 	},
@@ -256,14 +258,15 @@ require("lazy").setup({
 				--
 				defaults = {
 					file_ignore_patterns = {
-						"node_modules",
-						"build",
+						"^node_modules/",
+						"^build/",
+						"^.git/",
 					},
 					--   mappings = {
 					--     i = { ['<c-enter>'] = 'to_fuzzy_refine' },
 					--   },
 				},
-				-- pickers = {}
+				pickers = { find_files = { hidden = true } },
 				extensions = {
 					["ui-select"] = {
 						require("telescope.themes").get_dropdown(),
@@ -855,7 +858,7 @@ require("lazy").setup({
 			end
 			vim.keymap.set("n", "<leader>a", function()
 				harpoon:list():add()
-			end)
+			end, { desc = "[A]dd to harpoon list" })
 
 			vim.keymap.set("n", "<Leader>hh", function()
 				toggle_telescope(harpoon:list())
@@ -901,13 +904,18 @@ require("lazy").setup({
 				view = {
 					width = 30, -- Adjust width as needed
 					side = "left", -- Position on the left
+					adaptive_size = true,
 				},
 				filters = {
 					custom = {
 						"^.git$",
 					},
+					dotfiles = false,
 				},
-				vim.keymap.set("n", "<Leader>e", ":NvimTreeToggle<CR>", { desc = "Open file [e]xplorer" }),
+				vim.keymap.set("n", "<Leader>et", ":NvimTreeToggle<CR>", { desc = "[T]oggle" }),
+				vim.keymap.set("n", "<Leader>ef", ":NvimTreeFocus<CR>", { desc = "Focus on tree" }),
+				vim.keymap.set("n", "<Leader>ef", ":NvimTreeFindFile<CR>", { desc = "[F]ind file" }),
+				vim.keymap.set("n", "<Leader>ec", ":NvimTreeCollapse<CR>", { desc = "[C]ollapse" }),
 			})
 		end,
 	},
@@ -1003,7 +1011,7 @@ require("lazy").setup({
 		"danymat/neogen",
 		config = true,
 		keys = {
-			{ mode = { "n" }, "<Leader>nf", ":lua require('neogen').generate()<CR>", desc = "Generate docstring" },
+			{ mode = { "n" }, "<Leader>id", ":lua require('neogen').generate()<CR>", desc = "[I]nsert [d]ocstring" },
 		},
 		-- Uncomment next line if you want to follow only stable versions
 		-- version = "*"
