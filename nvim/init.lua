@@ -77,7 +77,31 @@ vim.keymap.set("n", "<Esc>", "<cmd>nohlsearch<CR>")
 vim.keymap.set({ "n", "v", "t", "i" }, "jk", "<Esc>")
 
 -- Diagnostic keymaps
-vim.keymap.set("n", "<leader>e", vim.diagnostic.setloclist, { desc = "Open diagnostic List [e]rror list" })
+vim.keymap.set("n", "<leader>td", function()
+	-- Check if location list is open in current tab
+	local winid = vim.fn.getloclist(0, { winid = 0 }).winid
+	if winid ~= 0 then
+		-- Location list is open, close it
+		vim.cmd("lclose")
+	else
+		-- Open location list with diagnostics
+		vim.diagnostic.setloclist()
+
+		-- Create autocmd to close location list when an item is selected
+		vim.api.nvim_create_autocmd("BufLeave", {
+			callback = function(ev)
+				-- Check if the buffer being left is the location list
+				if vim.bo[ev.buf].filetype == "qf" then
+					-- Close the location list
+					vim.cmd("lclose")
+					-- Remove this autocmd after it's triggered once
+					return true
+				end
+			end,
+			desc = "Close location list after jumping to diagnostic",
+		})
+	end
+end, { desc = "Toggle [d]iagnostic List" })
 vim.keymap.set("n", "<leader>q", ":q<CR>", { desc = "Close window (:q)" })
 
 vim.keymap.set("t", "<Esc><Esc>", "<C-\\><C-n>", { desc = "Exit terminal mode" })
@@ -96,6 +120,14 @@ vim.api.nvim_create_autocmd("TextYankPost", {
 	end,
 })
 
+-- Save when focus is lost or BufLeave
+vim.api.nvim_create_autocmd({ "BufLeave", "FocusLost" }, {
+	callback = function()
+		if vim.bo.modified and not vim.bo.readonly and vim.fn.expand("%") ~= "" and vim.bo.buftype == "" then
+			vim.api.nvim_command("silent update")
+		end
+	end,
+})
 -- Install `lazy.nvim` plugin manager
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not (vim.uv or vim.loop).fs_stat(lazypath) then
@@ -188,12 +220,13 @@ require("lazy").setup({
 			spec = {
 				{ "<leader>c", group = "[C]ode", mode = { "n", "x" } },
 				{ "<leader>d", group = "[D]ocument" },
-				{ "<leader>r", group = "[R]ename" },
+				{ "<leader>r", group = "[R]ename/[R]efactor" },
 				{ "<leader>s", group = "[S]earch" },
 				{ "<leader>e", group = "[E]xplorer" },
 				{ "<leader>w", group = "[W]orkspace" },
 				{ "<leader>t", group = "[T]oggle" },
 				{ "<leader>i", group = "[I]nsert" },
+				{ "<leader>g", group = "[G]oto" },
 				{ "<leader>h", group = "[H]arpoon files" },
 			},
 		},
@@ -343,9 +376,6 @@ require("lazy").setup({
 		-- Main LSP Configuration
 		"neovim/nvim-lspconfig",
 		dependencies = {
-			-- Automatically install LSPs and related tools to stdpath for Neovim
-			-- Mason must be loaded before its dependents so we need to set it up here.
-			-- NOTE: `opts = {}` is the same as calling `require('mason').setup({})`
 			{ "williamboman/mason.nvim", opts = {} },
 			"williamboman/mason-lspconfig.nvim",
 			"WhoIsSethDaniel/mason-tool-installer.nvim",
@@ -377,14 +407,14 @@ require("lazy").setup({
 					-- Jump to the definition of the word under your cursor.
 					--  This is where a variable was first declared, or where a function is defined, etc.
 					--  To jump back, press <C-t>.
-					map("gd", require("telescope.builtin").lsp_definitions, "[G]oto [D]efinition")
+					map("<leader>gd", require("telescope.builtin").lsp_definitions, "[G]oto [D]efinition")
 
 					-- Find references for the word under your cursor.
-					map("gr", require("telescope.builtin").lsp_references, "[G]oto [R]eferences")
+					map("<leader>gr", require("telescope.builtin").lsp_references, "[G]oto [R]eferences")
 
 					-- Jump to the implementation of the word under your cursor.
 					--  Useful when your language has ways of declaring types without an actual implementation.
-					map("gI", require("telescope.builtin").lsp_implementations, "[G]oto [I]mplementation")
+					map("<leader>gI", require("telescope.builtin").lsp_implementations, "[G]oto [I]mplementation")
 
 					-- Jump to the type of the word under your cursor.
 					--  Useful when you're not sure what type a variable is and you want to see
@@ -528,16 +558,12 @@ require("lazy").setup({
 			local servers = {
 				ruff = {},
 				rust_analyzer = {},
-				-- clangd = {},
-				-- gopls = {},
-				-- pyright = {},
-				-- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
+				svelte = {},
 				--
 				-- Some languages (like typescript) have entire language plugins that can be useful:
 				--    https://github.com/pmizio/typescript-tools.nvim
 				--
 				-- But for many setups, the LSP (`ts_ls`) will work just fine
-				-- ts_ls = {},
 				--
 
 				lua_ls = {
@@ -912,7 +938,7 @@ require("lazy").setup({
 					},
 					dotfiles = false,
 				},
-				vim.keymap.set("n", "<Leader>et", ":NvimTreeToggle<CR>", { desc = "[T]oggle" }),
+				vim.keymap.set("n", "<Leader>ee", ":NvimTreeToggle<CR>", { desc = "Toggle [e]xplorer" }),
 				vim.keymap.set("n", "<Leader>ef", ":NvimTreeFocus<CR>", { desc = "Focus on tree" }),
 				vim.keymap.set("n", "<Leader>ef", ":NvimTreeFindFile<CR>", { desc = "[F]ind file" }),
 				vim.keymap.set("n", "<Leader>ec", ":NvimTreeCollapse<CR>", { desc = "[C]ollapse" }),
@@ -982,11 +1008,11 @@ require("lazy").setup({
 				lazygit:toggle()
 			end
 
-			vim.api.nvim_set_keymap(
+			vim.keymap.set(
 				"n",
-				"<leader>g",
+				"<leader>gg",
 				"<cmd>lua _lazygit_toggle()<CR>",
-				{ noremap = true, silent = true }
+				{ desc = "Open Lazy[g]it", noremap = true, silent = true }
 			)
 		end,
 	},
@@ -1031,6 +1057,28 @@ require("lazy").setup({
 			{ "<leader>wj", "<cmd>lua require('nvim-window').pick()<cr>", desc = "nvim-window: Jump to window" },
 		},
 		config = true,
+	},
+	{
+		"ThePrimeagen/refactoring.nvim",
+		dependencies = {
+			"nvim-lua/plenary.nvim",
+			"nvim-treesitter/nvim-treesitter",
+		},
+		lazy = false,
+		config = function()
+			require("refactoring").setup({})
+			vim.keymap.set("x", "<leader>re", ":Refactor extract ")
+			vim.keymap.set("x", "<leader>rf", ":Refactor extract_to_file ")
+
+			vim.keymap.set("x", "<leader>rv", ":Refactor extract_var ")
+
+			vim.keymap.set({ "n", "x" }, "<leader>ri", ":Refactor inline_var")
+
+			vim.keymap.set("n", "<leader>rI", ":Refactor inline_func")
+
+			vim.keymap.set("n", "<leader>rb", ":Refactor extract_block")
+			vim.keymap.set("n", "<leader>rbf", ":Refactor extract_block_to_file")
+		end,
 	},
 }, {
 	ui = {
