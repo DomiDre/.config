@@ -6,5 +6,6 @@ decorations = "Full"
 decorations_theme_variant = "Dark"
 
 [font]
+normal = { family = "Inconsolata", style = "Regular" }
 size=15
 
