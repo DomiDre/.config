@@ -54,11 +54,13 @@ floating_modifier $mod
 # or left-clicking anywhere into the window while holding the floating modifier.
 tiling_drag modifier titlebar
 
-# start a terminal
+# start a terminal etc.
 bindsym $mod+Return exec i3-sensible-terminal
 bindsym control+mod1+t exec i3-sensible-terminal
 bindsym $mod+t exec librewolf
 bindsym $mod+o exec obsidian
+bindsym $mod+n exec i3-sensible-terminal -e nvim
+bindsym $mod+y exec i3-sensible-terminal -e yazi
 
 # kill focused window
 bindsym $mod+Shift+q kill
