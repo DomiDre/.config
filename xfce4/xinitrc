@@ -1,8 +1,7 @@
 #!/bin/sh
 
-# remap capslock to ctrl and esc
+# remap capslock to ctrl
 setxkbmap -option 'caps:ctrl_modifier'
-xcape -e 'Caps_Lock=Escape'
 
 # fix broken $UID on some system...
 if test "x$UID" = "x"; then
